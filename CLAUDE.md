@@ -37,23 +37,33 @@ sudo bash mount.sh umount    # desmonta (salva mudanças na imagem)
 
 ---
 
-## ⚡ PRÓXIMA AÇÃO IMEDIATA
+## ⚡ ESTADO ATUAL (2026-05-01)
 
-A imagem `images/r35s_arkos_os.img` **está montada** (ou foi desmontada na sessão anterior).
-O `apply_led_fix.sh` ainda **não foi executado**.
+### O que foi feito nesta sessão
 
-```bash
-# 1. Montar (se não estiver montado)
-sudo bash mount.sh
+**Fix do LED — abordagem DTB (solução definitiva):**
 
-# 2. Aplicar o fix integrado
-sudo bash apply_led_fix.sh
+O `fix_power_led` userspace **não funcionava** porque o kernel `simple-panel-dsi` usa
+a GPIO descriptor API (`devm_gpiod_get_optional`) para ownar os GPIOs 0 e 5.
+O `echo > /sys/class/gpio/export` falha silenciosamente — o kernel rejeita a exportação.
 
-# 3. Desmontar (salva na imagem)
-sudo bash mount.sh umount
+Evidência: o LED apaga durante standby (kernel deasserta via `panel_unprepare()`),
+confirmando que o driver controla esses GPIOs ativamente.
+
+**Solução:** remover `led-red-gpios` e `led-blue1-gpios` do nó `panel@0` no DTS,
+recompilar e substituir o DTB na partição BOOT do SD card.
+
+```
+dtb/rk3326-r35s-linux.dts     ← modificado: led-*-gpios removidos
+dtb/rk3326-r35s-linux-noleds.dtb ← DTB compilado (já flashado no SD)
 ```
 
-Depois disso a imagem está pronta para flash no SD card.
+**Aplicado no SD card (2026-05-01):**
+- `/usr/local/bin/fix_power_led` → versão com GPIO 0/5 (redundante agora, mas não prejudica)
+- `/usr/local/bin/batt_life_warning.py` → versão com LED_GPIOS = [77, 0, 5]
+- `rk3326-r35s-linux.dtb` → novo DTB sem led-*-gpios (backup em `.dtb.bak`)
+
+**Próximo passo:** testar no device — o LED frontal deve permanecer apagado durante uso normal.
 
 ---
 
@@ -128,8 +138,7 @@ Serviço correspondente provavelmente habilitado — investigar na dissecação.
 - [x] Documentação completa (docs/, dtb/, CLAUDE.md)
 
 ### Pendente
-- [ ] **⚡ AGORA:** `sudo bash apply_led_fix.sh` → `sudo bash mount.sh umount`
-- [ ] **Flash no SD card** com a imagem modificada
+- [ ] **⚡ TESTAR** o LED fix no device (DTB já flashado em 2026-05-01)
 - [ ] **Continuar dissecação** — EmulationStation configs, RetroArch setup, audio-fix
 - [ ] **f3probe** no SD card para verificar capacidade real de escrita
 - [ ] **dArkOS port** — recriar darkos_boot.img e executar flash (ver docs/darkos-port.md)
