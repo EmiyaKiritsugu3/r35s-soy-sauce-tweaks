@@ -138,7 +138,7 @@ Serviço correspondente provavelmente habilitado — investigar na dissecação.
 - [x] Documentação completa (docs/, dtb/, CLAUDE.md)
 
 ### Pendente
-- [ ] **⚡ TESTAR** o LED fix no device (DTB já flashado em 2026-05-01)
+- [x] **LED fix CONFIRMADO** no device em 2026-05-01 — LED frontal apagado ✓
 - [ ] **Continuar dissecação** — EmulationStation configs, RetroArch setup, audio-fix
 - [ ] **f3probe** no SD card para verificar capacidade real de escrita
 - [ ] **dArkOS port** — recriar darkos_boot.img e executar flash (ver docs/darkos-port.md)
