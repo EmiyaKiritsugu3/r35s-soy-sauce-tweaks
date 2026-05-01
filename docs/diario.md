@@ -362,3 +362,28 @@ sudo f3probe --destructive --time-ops /dev/sdb
 # Restauração completa
 sudo bash /home/emiyakiritsugu/restaurar_r35s.sh
 ```
+
+---
+
+## 5. Instalação Bem-Sucedida do dArkOS4Clone (01/05/2026)
+
+**Objetivo:** Instalar o dArkOS4Clone (ArkOS para clones) em um R36S (Panel 1) com SD Card falso.
+
+### O que foi feito:
+1. **Flash da Imagem:** Gravada a imagem `dArkOS4Clone` no `/dev/sdb`.
+2. **Injeção de Hardware (Panel 1):**
+   - Injetado `rk3326-r36s-sauce-panel1-linux.dtb`.
+   - Injetado `boot.ini` configurado para o hardware Sauce.
+   - Injetado kernel `Image` compatível.
+3. **Trava de Segurança (Anti-Expansion):**
+   - Criado arquivo `doneit` na raiz do boot para pular o script de primeiro boot.
+   - Renomeado `expandtoexfat.sh` para `.bak` para impedir corrupção do SD falso por expansão automática.
+
+### Resultado:
+- Boot funcional de primeira.
+- Hardware reconhecido corretamente (sem tela preta).
+- Partição `EASYROMS` preservada e pronta para restauração seletiva de backup.
+
+### Pendências:
+- Restauração seletiva de ROMs do backup (`roms_partition.img`).
+- Limitar uso a < 20GB para segurança física do chip falso.
