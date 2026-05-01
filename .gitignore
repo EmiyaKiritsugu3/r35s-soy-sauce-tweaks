@@ -1,0 +1,6 @@
+# Workspace local — não entra no repo
+mnt/
+workspace/
+*.img
+*.img.gz
+*.img.xz
