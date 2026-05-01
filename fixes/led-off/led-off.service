@@ -1,0 +1,12 @@
+[Unit]
+Description=Turn off front LEDs after boot
+After=multi-user.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/led-off.sh
+
+[Install]
+WantedBy=multi-user.target
