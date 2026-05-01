@@ -5,8 +5,7 @@
 #   sudo bash mount.sh umount  → desmonta tudo
 
 PROJ="$(cd "$(dirname "$0")" && pwd)"
-IMG="/run/media/emiyakiritsugu/726EC5436EC50139/R35S_Backup"
-OS_IMG="/run/media/emiyakiritsugu/726EC5436EC50139/r35s_arkos_os.img"
+OS_IMG="$PROJ/images/r35s_arkos_os.img"
 
 ROOTFS="$PROJ/mnt/rootfs"
 BOOT="$PROJ/mnt/boot"

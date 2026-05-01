@@ -4,3 +4,4 @@ workspace/
 *.img
 *.img.gz
 *.img.xz
+images/
