@@ -18,93 +18,121 @@ O device é vendido como "R35S" mas o ArkOS o identifica como **"Clone R36S Soy 
 
 ```
 ~/Projetos_Antigravity/r35s-soy-sauce-tweaks/
-├── images/r35s_arkos_os.img   ← imagem OS completa (8,8 GB) — sistema original intacto
-├── mnt/rootfs/                ← ponto de montagem do sistema (vazio até montar)
-├── mnt/boot/                  ← ponto de montagem da BOOT (vazio até montar)
-├── mount.sh                   ← monta/desmonta a imagem
-├── docs/hardware.md           ← mapa completo do hardware
-├── docs/insights.md           ← 14 insights técnicos da jornada
-└── fixes/led-off/             ← fix do LED frontal (service systemd)
+├── images/r35s_arkos_os.img   ← imagem OS (8,8 GB) — sistema com LED fix integrado
+├── mnt/rootfs/                ← ponto de montagem do sistema
+├── mnt/boot/                  ← ponto de montagem da BOOT
+├── mount.sh                   ← sudo bash mount.sh / sudo bash mount.sh umount
+├── apply_led_fix.sh           ← ⚠ PRÓXIMA AÇÃO: sudo bash apply_led_fix.sh
+├── docs/                      ← hardware.md, insights.md, diario.md, darkos-port.md
+├── dtb/                       ← rk3326-r35s-linux.dts (original decompilado)
+└── fixes/led-off/             ← service systemd legado (substituído por apply_led_fix.sh)
 ```
 
-### Montar para trabalho
+### Montar/desmontar
 
 ```bash
 sudo bash mount.sh           # monta mnt/rootfs/ e mnt/boot/
-sudo bash mount.sh umount    # desmonta
+sudo bash mount.sh umount    # desmonta (salva mudanças na imagem)
 ```
-
-### Offsets da imagem
-
-| Partição | Setor início | Offset bytes | Tamanho |
-|---|---|---|---|
-| sdb1 BOOT (FAT32) | 32768 | 16 MB | 112 MB |
-| sdb2 ROOT (ext4) | 262144 | 128 MB | 8,7 GB |
-| sdb3 EASYROMS (exfat) | 18434245 | ~8,8 GB | 79,1 GB (não na imagem) |
 
 ---
 
-## Estado atual
+## ⚡ PRÓXIMA AÇÃO IMEDIATA
+
+A imagem `images/r35s_arkos_os.img` **está montada** (ou foi desmontada na sessão anterior).
+O `apply_led_fix.sh` ainda **não foi executado**.
+
+```bash
+# 1. Montar (se não estiver montado)
+sudo bash mount.sh
+
+# 2. Aplicar o fix integrado
+sudo bash apply_led_fix.sh
+
+# 3. Desmontar (salva na imagem)
+sudo bash mount.sh umount
+```
+
+Depois disso a imagem está pronta para flash no SD card.
+
+---
+
+## Arquitetura do ArkOS — o que já dissecamos
+
+### Sequência de boot (systemd)
+
+```
+351mp.service  (oneshot)
+  ├─ fix_power_led       → ativa GPIO 77 (LED padrão RG351) + desliga GPIOs 0/5 (R35S) ← NOSSO FIX
+  ├─ checkbrightonboot   → restaura brilho salvo
+  └─ fixvolume.sh        → restaura volume salvo
+
+batt_led.service  (loop contínuo)
+  └─ batt_life_warning.py → pisca GPIOs 77/0/5 se bateria ≤ 20% ← NOSSO FIX
+
+emulationstation.service
+  └─ /usr/bin/emulationstation/emulationstation.sh  (user: ark)
+
+oga_events.service    → lê botões físicos / hotkeys
+autosuspend.service   → suspend por inatividade
+wifi_importer.service → importa configs WiFi
+```
+
+### Fix do LED — arquitetura real (descoberta na dissecação)
+
+O ArkOS **já tem** sistema de LED (`fix_power_led` + `batt_life_warning.py`) mas
+controla **GPIO 77** (GPIO2_B5), que é irrelevante para o R35S.
+
+O LED que incomoda é acionado pelo driver `simple-panel-dsi` nos:
+- **GPIO 0** (GPIO0_A0) — LED frontal azul
+- **GPIO 5** (GPIO0_A5) — LED frontal vermelho
+
+O `apply_led_fix.sh` integra os GPIOs 0 e 5 ao sistema existente, sem criar
+services paralelos. `fix_power_led` e `batt_life_warning.py` são atualizados.
+
+### Descoberta importante: audio-fix.sh
+
+`/usr/local/bin/audio-fix.sh` (modificado Jan/2026, comentários em Mandarim):
+O chip de áudio RK817-1A tem bug de inicialização — precisa de suspend/resume:
+```bash
+sleep 6
+rtcwake -m mem -s 1   # suspend para RAM por 1s → reseta chip fisicamente
+sleep 2
+amixer sset 'Playback Path' 'SPK'
+alsactl store
+```
+Serviço correspondente provavelmente habilitado — investigar na dissecação.
+
+### Scripts principais em /usr/local/bin
+
+| Script | Função |
+|--------|--------|
+| `fix_power_led` | Liga/desliga LEDs no boot |
+| `batt_life_warning.py` | Monitor de bateria com alerta de LED |
+| `retroarch` / `retroarch32` | Launchers do RetroArch |
+| `es_systems.cfg` | Config de sistemas do EmulationStation |
+| `ogage` / `ogage.r33s` / `ogage.r36s` | OGA events (3 variantes de hardware) |
+| `auto_suspend.py` | Auto suspend por inatividade |
+| `perfmax` / `perfnorm` | Scripts de performance (overclock) |
+| `audio-fix.sh` | Fix de inicialização do áudio (RK817-1A) |
+
+---
+
+## Estado das tarefas
 
 ### Concluído
-- [x] Hardware completamente mapeado (GPIOs, display, boot chain)
-- [x] Imagem OS original montada e verificada (`images/r35s_arkos_os.img`)
-- [x] Fix do LED frontal criado (`fixes/led-off/`) — pronto para aplicar
-- [x] Documentação completa (`docs/hardware.md`, `docs/insights.md`)
-- [x] Workspace de desenvolvimento configurado
+- [x] Hardware mapeado (GPIOs, display, boot chain, DTB decompilado)
+- [x] Imagem OS montada em `images/r35s_arkos_os.img`
+- [x] Arquitetura do ArkOS dissecada (boot sequence, services, scripts)
+- [x] Fix do LED: `apply_led_fix.sh` criado e commitado
+- [x] Documentação completa (docs/, dtb/, CLAUDE.md)
 
 ### Pendente
-- [ ] **Aplicar LED fix** ao `root_partition.img` (requer `sudo bash ~/aplicar_led_fix.sh`)
-- [ ] **Dissecar o sistema** — montar e mapear scripts/configs do ArkOS
-- [ ] **Gerar imagem com LED fix** — após aplicar o fix, rodar `montar_os_completo.sh` de novo
-- [ ] **Restaurar o SD card** — `sudo bash ~/restaurar_r35s.sh`
+- [ ] **⚡ AGORA:** `sudo bash apply_led_fix.sh` → `sudo bash mount.sh umount`
+- [ ] **Flash no SD card** com a imagem modificada
+- [ ] **Continuar dissecação** — EmulationStation configs, RetroArch setup, audio-fix
 - [ ] **f3probe** no SD card para verificar capacidade real de escrita
-- [ ] **dArkOS port** — solução identificada mas não executada (ver abaixo)
-
----
-
-## Fix do LED frontal
-
-**Problema:** LED frontal fica aceso o tempo todo desde que o device foi comprado.
-
-**Causa:** O driver `simple-panel-dsi` seta GPIO0_A0 (sysfs 0) e GPIO0_A5 (sysfs 5) como HIGH
-ao inicializar o display. O nó `gpio_leds` está `disabled` no DTB → `/sys/class/leds/` vazio.
-
-**Solução:** `fixes/led-off/led-off.service` — service systemd one-shot que roda após
-`multi-user.target` e escreve 0 nos dois GPIOs via sysfs.
-
-**Para aplicar na imagem:**
-```bash
-# Injeta no root_partition.img (no SSD)
-sudo bash ~/aplicar_led_fix.sh
-
-# Depois regenera a imagem OS com o fix incluído
-sudo bash ~/montar_os_completo.sh
-# → salva em /run/media/.../r35s_arkos_os.img (SSD)
-# → copiar para images/ aqui
-```
-
----
-
-## Porta dArkOS (pendente, menor prioridade)
-
-**Solução identificada:** dArkOS kernel + DTB R35S + ROOT ext4 (já convertido)
-
-| Arquivo | Localização | Status |
-|---|---|---|
-| `dArkOSRE_R36_trixie_03082026.img` | SSD raiz (7,8 GB) | Original dArkOS |
-| `darkos_root.img` | SSD raiz (8,4 GB) | ROOT convertido btrfs→ext4 |
-| `/tmp/darkos_boot.img` | **PERDIDO** ao reiniciar PC | Precisa recriar |
-
-**Para recriar o boot dArkOS:**
-1. Montar `dArkOSRE_R36_trixie_03082026.img` com offset correto
-2. Extrair `Image` (kernel), `uInitrd`, criar `boot.ini` com DTB R35S
-3. Flash: `sudo dd if=darkos_boot.img of=/dev/sdb1 bs=4M` + `sudo dd if=darkos_root.img of=/dev/sdb2 bs=4M`
-
-**Por que não bootou antes (3 tentativas):**
-1. ROOT btrfs — kernel ArkOS 4.4 não tem btrfs
-2. Kernel ArkOS + ROOT ext4 — Debian Trixie incompatível com kernel 4.4
-3. Solução correta nunca foi executada (sudo bloqueado por TTY)
+- [ ] **dArkOS port** — recriar darkos_boot.img e executar flash (ver docs/darkos-port.md)
 
 ---
 
@@ -114,52 +142,55 @@ SSD: `/run/media/emiyakiritsugu/726EC5436EC50139/`
 
 | Arquivo | Tamanho | Conteúdo |
 |---|---|---|
-| `R35S_Backup/boot_partition.img` | 112 MB | BOOT original |
-| `R35S_Backup/root_partition.img` | 8,7 GB | ROOT original (ext4, **intacto**) |
-| `R35S_Backup/roms_partition.img` | 80 GB | ROMs completas |
-| `r35s_backup_completo.img` | 4,5 GB | Primeiros 4,5 GB do disco (U-Boot + BOOT + metade ROOT) |
-| `r35s_arkos_os.img` | 8,8 GB | Imagem OS montada (U-Boot + BOOT + ROOT completo) |
-| `darkos_root.img` | 8,4 GB | ROOT dArkOS convertido para ext4 |
+| `R35S_Backup/boot_partition.img` | 112 MB | BOOT original — **não modificar** |
+| `R35S_Backup/root_partition.img` | 8,7 GB | ROOT original — **não modificar** |
+| `R35S_Backup/roms_partition.img` | 80 GB | ROMs completas — **não modificar** |
+| `r35s_backup_completo.img` | 4,5 GB | U-Boot + BOOT + metade ROOT |
+| `darkos_root.img` | 8,4 GB | ROOT dArkOS btrfs→ext4 |
+| `dArkOSRE_R36_trixie_03082026.img` | 7,8 GB | Imagem dArkOS original |
 
-**Scripts no home:**
+**Scripts utilitários em ~/:**
 ```
-~/restaurar_r35s.sh       — restaura SD card completo (sdb)
-~/aplicar_led_fix.sh      — injeta led-off service no root_partition.img
-~/montar_os_completo.sh   — monta imagem OS flashável a partir das partes
+~/restaurar_r35s.sh      — restaura SD card a partir dos backups do SSD
+~/montar_os_completo.sh  — monta imagem OS flashável a partir das partes
 ```
 
 ---
 
 ## Hardware — referência rápida
 
-### GPIO (RK3326)
-Fórmula: `sysfs = bank * 32 + (grupo - 'A') * 8 + pino`
+### GPIO (RK3326) — fórmula: `sysfs = bank × 32 + (grupo − 'A') × 8 + pino`
 
 | GPIO | sysfs | Função |
 |---|---|---|
-| GPIO0_A0 | 0 | LED frontal azul (panel driver) |
-| GPIO0_A5 | 5 | LED frontal vermelho (panel driver) |
+| GPIO0_A0 | 0 | LED frontal azul (panel driver) ← nosso fix |
+| GPIO0_A5 | 5 | LED frontal vermelho (panel driver) ← nosso fix |
+| GPIO2_B5 | 77 | LED padrão ODROID/RG351 (fix_power_led original) |
 | GPIO1_B2 | 42 | Display enable |
 | GPIO3_B0 | 104 | Display reset |
 
 ### Boot chain
 ```
 Power → Boot ROM → U-Boot (setor 64) → boot.ini (FAT32) →
-→ Image + uInitrd + rk3326-r35s-linux.dtb → kernel → systemd → EmulationStation
+Image + uInitrd + rk3326-r35s-linux.dtb → kernel → systemd → EmulationStation
 ```
 
-### DTB
-- Em uso: `rk3326-r35s-linux.dtb`
-- compatible: `"rockchip,rk3326-odroidgo3-linux"`
-- Descompilar: `dtc -I dtb -O dts rk3326-r35s-linux.dtb > original.dts`
+### Offsets da imagem
+
+| Partição | Setor | Offset | Tamanho |
+|---|---|---|---|
+| sdb1 BOOT (FAT32) | 32768 | 16 MB | 112 MB |
+| sdb2 ROOT (ext4) | 262144 | 128 MB | 8,7 GB |
+| sdb3 EASYROMS | 18434245 | ~8,8 GB | não incluída |
 
 ---
 
 ## Notas importantes
 
-- Fish shell não suporta heredoc `<<` — usar Write tool ou arquivos em /tmp
+- Fish shell não suporta heredoc `<<` — usar arquivos em /tmp ou Write tool
 - `debugfs write` falha se arquivo já existe — fazer `rm` antes
 - `debugfs symlink` tem ordem oposta ao `ln`: `(linkname, target)`
-- O SD card é **falsificado** — nunca confiar na capacidade reportada sem f3probe
+- O SD card é **falsificado** — nunca confiar na capacidade sem f3probe
 - `firstboot.service` do dArkOS formata sdb3 — **sempre desabilitar antes de flashar ROOT dArkOS**
 - `conv=notrunc` é obrigatório ao escrever partição dentro de imagem com `dd`
+- Arquivos no sistema montado pertencem ao root → edições precisam de `sudo tee` ou script com sudo
