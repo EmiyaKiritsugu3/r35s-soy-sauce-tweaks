@@ -57,17 +57,40 @@ Foi gerada uma imagem de backup do estado funcional atual do SD card:
 
 ---
 
+---
+
 ## 🏗 Arquitetura do dArkOS4Clone — Novo Baseline
 
-Diferente do ArkOS original, o dArkOS4Clone utiliza **btrfs** na ROOTFS por padrão (embora possamos converter para ext4 se necessário) e possui uma estrutura de boot mais flexível.
+Diferente do ArkOS original, o dArkOS4Clone utiliza **btrfs** na ROOTFS por padrão e possui uma estrutura de boot mais flexível.
 
 ### Scripts e Localizações Importantes (Pós-Migração)
 
 | Caminho | Função |
 |--------|--------|
-| `mnt/boot/boot.ini` | Configurações de boot e DTB |
-| `/usr/local/bin/xray.sh` | Ferramenta de diagnóstico (injetada) |
+| `mnt/boot/boot.ini` | Configurações de boot e DTB (Removido `quiet splash`) |
+| `/usr/local/bin/sentinel_xray.sh` | **Sentinel: Deep X-Ray** (Saída visual no TTY1) |
 | `/usr/local/bin/fix_power_led` | Gestão de LED frontal |
+
+---
+
+## 🎯 Estratégia de Elite: Arch-style Workflow
+
+Para evitar o ciclo de "reinstalar tudo" e proteger o SD Card falso, adotamos o modelo de **Particionamento Desacoplado**:
+
+### 1. Separação de Preocupações
+- **Sistema (BOOT/ROOTFS):** Tratado como imutável/descartável. Atualizado via flash seletivo de partições.
+- **Dados (EASYROMS):** O "/home" do console. Contém ROMs, BIOS, Saves e Configurações de usuário. **Nunca deve ser formatado.**
+
+### 2. Persistência de Configurações (Binding)
+- Implementar `mount --bind` para pastas críticas:
+    - `/home/ark/.config/retroarch` → `/roms/bios/.system_configs/retroarch`
+    - `/home/ark/.emulationstation` → `/roms/bios/.system_configs/es_configs`
+- **Benefício:** Saves e configurações sobrevivem a trocas de OS.
+
+### 3. Sentinel: Deep X-Ray Protocol
+- O scanner de hardware agora é parte integrante do baseline.
+- **Trigger:** Rodado automaticamente no boot via systemd.
+- **Output:** `/boot/SENTINEL_HARDWARE_MAP.log` (completo) e TTY1 (progresso visual).
 
 ---
 
@@ -76,14 +99,15 @@ Diferente do ArkOS original, o dArkOS4Clone utiliza **btrfs** na ROOTFS por padr
 ### Concluído
 - [x] Hardware mapeado (GPIOs, display, boot chain, DTB decompilado)
 - [x] Baseline migrado para dArkOS4Clone
-- [x] Imagem base gerada em `images/darkos4clone_patched_base.img`
-- [x] Dissecação do ArkOS original concluída (docs/dissection/)
+- [x] Imagem base gerada e injetada com **Sentinel X-Ray (Visual)**
+- [x] Display Fix (Elida Panel) aplicado no DTB oficial do dArkOS
+- [x] Estratégia "Arch-style" documentada
 
 ### Pendente
-- [ ] **Validar dArkOS em campo** — testar estabilidade de Wi-Fi e performance de cores
-- [ ] **f3probe** no SD card para verificar capacidade real de escrita
-- [ ] **Restauração de ROMs** — popular a partição EASYROMS seletivamente do backup
-- [ ] **Análise btrfs** — avaliar se vale manter btrfs ou converter para ext4 para resiliência
+- [ ] **Flash Seletivo** — Gravar apenas sdb1 e sdb2 da imagem para o SD físico.
+- [ ] **Mapeamento Graphify** — Rodar na ROOTFS extraída para gerar o blueprint.
+- [ ] **Configuração do fstab** — Automatizar o bind de saves/configs para a partição ROMs.
+- [ ] **Análise btrfs** — Avaliar resiliência vs ext4 no chip falso.
 
 ---
 
