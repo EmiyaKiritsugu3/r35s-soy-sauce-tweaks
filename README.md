@@ -12,18 +12,19 @@ Customizations, fixes and documentation for the **R35S handheld gaming device** 
 | RAM | 1GB |
 | Display | Elida KD35T133 — HX8394F controller, MIPI DSI |
 | Resolution | 640×480 @ 60Hz |
-| OS | ArkOS (GOGOCAT build) |
-| DTB | `rk3326-r35s-linux.dtb` (`compatible = "rockchip,rk3326-odroidgo3-linux"`) |
+| OS | dArkOS4Clone (Trixie build, btrfs) |
+| DTB | `rk3326-r35s-linux.dtb` (patched Soy Sauce V03) |
 
-> **Note:** Despite being sold as "R35S", ArkOS internally identifies the panel as "Clone R36S Soy Sauce". The dArkOS project uses the name "soysauce" for Y3506-family boards. GPIOs for display are identical between R35S and Soy Sauce V03 DTBs.
+> **Note:** The project recently migrated to **dArkOS4Clone** as the primary baseline for better hardware support and clone compatibility.
 
 ## Fixes
 
 | Fix | Description | Status |
 |-----|-------------|--------|
-| [LED Off](fixes/led-off/) | Turn off the always-on front LED after boot | ✅ Ready |
-| [Remove Duplicate ROMs](fixes/duplicate-roms/) | Remove 62 duplicate ROMs (genesis=megadrive, sfc=snes) | ✅ Ready |
-| [dArkOS Port](fixes/darkos-port/) | Research notes for running dArkOS on this hardware | 🔬 Research |
+| [LED Off](fixes/led-off/) | Turn off the always-on front LED after boot (DTB patch) | ✅ Integrated |
+| [Wi-Fi Fix](dtb/) | Enabled SDIO bus for internal/external Wi-Fi support | ✅ Integrated |
+| [Anti-Expansion](docs/diario.md) | Prevented automatic expansion to protect fake SD cards | ✅ Integrated |
+| [Baseline Image](images/) | Patched dArkOS4Clone baseline image created | ✅ Ready |
 
 ## Hardware Details
 

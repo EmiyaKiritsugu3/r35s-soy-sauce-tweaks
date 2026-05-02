@@ -41,90 +41,33 @@ sudo bash mount.sh umount    # desmonta (salva mudanças na imagem)
 
 ### O que foi feito nesta sessão
 
-**Fix do LED — abordagem DTB (solução definitiva):**
+**1. Migração para dArkOS4Clone:**
+O sistema base foi migrado de ArkOS (GOGOCAT) para **dArkOS4Clone** (Trixie build), que oferece melhor compatibilidade com clones e suporte a hardware moderno.
 
-O `fix_power_led` userspace **não funcionava** porque o kernel `simple-panel-dsi` usa
-a GPIO descriptor API (`devm_gpiod_get_optional`) para ownar os GPIOs 0 e 5.
-O `echo > /sys/class/gpio/export` falha silenciosamente — o kernel rejeita a exportação.
+**2. Criação da Nova Imagem Base:**
+Foi gerada uma imagem de backup do estado funcional atual do SD card:
+- **Arquivo:** `images/darkos4clone_patched_base.img` (9,9 GB)
+- **Conteúdo:** MBR + BOOT (vfat) + ROOTFS (btrfs).
+- **Status:** Contém patches de hardware (Wi-Fi fix, Anti-Expansion fix).
 
-Evidência: o LED apaga durante standby (kernel deasserta via `panel_unprepare()`),
-confirmando que o driver controla esses GPIOs ativamente.
-
-**Solução:** remover `led-red-gpios` e `led-blue1-gpios` do nó `panel@0` no DTS,
-recompilar e substituir o DTB na partição BOOT do SD card.
-
-```
-dtb/rk3326-r35s-linux.dts     ← modificado: led-*-gpios removidos
-dtb/rk3326-r35s-linux-noleds.dtb ← DTB compilado (já flashado no SD)
-```
-
-**Aplicado no SD card (2026-05-01):**
-- `/usr/local/bin/fix_power_led` → versão com GPIO 0/5 (redundante agora, mas não prejudica)
-- `/usr/local/bin/batt_life_warning.py` → versão com LED_GPIOS = [77, 0, 5]
-- `rk3326-r35s-linux.dtb` → novo DTB sem led-*-gpios (backup em `.dtb.bak`)
-
-**Próximo passo:** testar no device — o LED frontal deve permanecer apagado durante uso normal.
+**3. Fix do LED e Hardware (Herdados):**
+- O fix do LED (abordagem DTB) foi validado e está integrado na nova imagem.
+- Barramento SDIO (Wi-Fi) habilitado via DTB.
+- Script `expandtoexfat.sh` desativado para proteger o SD card falsificado.
 
 ---
 
-## Arquitetura do ArkOS — o que já dissecamos
+## 🏗 Arquitetura do dArkOS4Clone — Novo Baseline
 
-### Sequência de boot (systemd)
+Diferente do ArkOS original, o dArkOS4Clone utiliza **btrfs** na ROOTFS por padrão (embora possamos converter para ext4 se necessário) e possui uma estrutura de boot mais flexível.
 
-```
-351mp.service  (oneshot)
-  ├─ fix_power_led       → ativa GPIO 77 (LED padrão RG351) + desliga GPIOs 0/5 (R35S) ← NOSSO FIX
-  ├─ checkbrightonboot   → restaura brilho salvo
-  └─ fixvolume.sh        → restaura volume salvo
+### Scripts e Localizações Importantes (Pós-Migração)
 
-batt_led.service  (loop contínuo)
-  └─ batt_life_warning.py → pisca GPIOs 77/0/5 se bateria ≤ 20% ← NOSSO FIX
-
-emulationstation.service
-  └─ /usr/bin/emulationstation/emulationstation.sh  (user: ark)
-
-oga_events.service    → lê botões físicos / hotkeys
-autosuspend.service   → suspend por inatividade
-wifi_importer.service → importa configs WiFi
-```
-
-### Fix do LED — arquitetura real (descoberta na dissecação)
-
-O ArkOS **já tem** sistema de LED (`fix_power_led` + `batt_life_warning.py`) mas
-controla **GPIO 77** (GPIO2_B5), que é irrelevante para o R35S.
-
-O LED que incomoda é acionado pelo driver `simple-panel-dsi` nos:
-- **GPIO 0** (GPIO0_A0) — LED frontal azul
-- **GPIO 5** (GPIO0_A5) — LED frontal vermelho
-
-O `apply_led_fix.sh` integra os GPIOs 0 e 5 ao sistema existente, sem criar
-services paralelos. `fix_power_led` e `batt_life_warning.py` são atualizados.
-
-### Descoberta importante: audio-fix.sh
-
-`/usr/local/bin/audio-fix.sh` (modificado Jan/2026, comentários em Mandarim):
-O chip de áudio RK817-1A tem bug de inicialização — precisa de suspend/resume:
-```bash
-sleep 6
-rtcwake -m mem -s 1   # suspend para RAM por 1s → reseta chip fisicamente
-sleep 2
-amixer sset 'Playback Path' 'SPK'
-alsactl store
-```
-Serviço correspondente provavelmente habilitado — investigar na dissecação.
-
-### Scripts principais em /usr/local/bin
-
-| Script | Função |
+| Caminho | Função |
 |--------|--------|
-| `fix_power_led` | Liga/desliga LEDs no boot |
-| `batt_life_warning.py` | Monitor de bateria com alerta de LED |
-| `retroarch` / `retroarch32` | Launchers do RetroArch |
-| `es_systems.cfg` | Config de sistemas do EmulationStation |
-| `ogage` / `ogage.r33s` / `ogage.r36s` | OGA events (3 variantes de hardware) |
-| `auto_suspend.py` | Auto suspend por inatividade |
-| `perfmax` / `perfnorm` | Scripts de performance (overclock) |
-| `audio-fix.sh` | Fix de inicialização do áudio (RK817-1A) |
+| `mnt/boot/boot.ini` | Configurações de boot e DTB |
+| `/usr/local/bin/xray.sh` | Ferramenta de diagnóstico (injetada) |
+| `/usr/local/bin/fix_power_led` | Gestão de LED frontal |
 
 ---
 
@@ -132,16 +75,15 @@ Serviço correspondente provavelmente habilitado — investigar na dissecação.
 
 ### Concluído
 - [x] Hardware mapeado (GPIOs, display, boot chain, DTB decompilado)
-- [x] Imagem OS montada em `images/r35s_arkos_os.img`
-- [x] Arquitetura do ArkOS dissecada (boot sequence, services, scripts)
-- [x] Fix do LED: `apply_led_fix.sh` criado e commitado
-- [x] Documentação completa (docs/, dtb/, CLAUDE.md)
+- [x] Baseline migrado para dArkOS4Clone
+- [x] Imagem base gerada em `images/darkos4clone_patched_base.img`
+- [x] Dissecação do ArkOS original concluída (docs/dissection/)
 
 ### Pendente
-- [x] **LED fix CONFIRMADO** no device em 2026-05-01 — LED frontal apagado ✓
-- [ ] **Continuar dissecação** — EmulationStation configs, RetroArch setup, audio-fix
+- [ ] **Validar dArkOS em campo** — testar estabilidade de Wi-Fi e performance de cores
 - [ ] **f3probe** no SD card para verificar capacidade real de escrita
-- [ ] **dArkOS port** — recriar darkos_boot.img e executar flash (ver docs/darkos-port.md)
+- [ ] **Restauração de ROMs** — popular a partição EASYROMS seletivamente do backup
+- [ ] **Análise btrfs** — avaliar se vale manter btrfs ou converter para ext4 para resiliência
 
 ---
 
