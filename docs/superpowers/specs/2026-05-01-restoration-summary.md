@@ -25,7 +25,19 @@ Para garantir a compatibilidade com a tela do **R36S Panel 1**, os seguintes arq
 
 ---
 
-## 2. Proteção Anti-Corrupção (SD Falsificado)
+## 2. Patch de Wi-Fi (Hardware Enable)
+
+Após o boot inicial, identificamos que o Wi-Fi não estava detectando redes. O diagnóstico via descompilação do DTB revelou que o barramento SDIO estava desativado.
+
+### Procedimento Técnico:
+1. **Descompilação:** O arquivo `rk3326-r36s-sauce-panel1-linux.dtb` foi convertido para `.dts` (texto).
+2. **Habilitação:** O nó `dwmmc@ff390000` (controlador SDIO para o Wi-Fi interno) teve seu status alterado de `"disabled"` para `"okay"`.
+3. **Recompilação:** O código foi compilado de volta para binário e injetado no cartão SD.
+4. **Objetivo:** Permitir que o Kernel enxergue o chip de Wi-Fi no barramento secundário de MMC.
+
+---
+
+## 3. Proteção Anti-Corrupção (SD Falsificado)
 
 Devido ao cartão SD ser identificado como falso (reporta 128GB mas possui menos capacidade real), foram aplicadas travas manuais para impedir a auto-expansão do sistema, que corromperia o cartão:
 

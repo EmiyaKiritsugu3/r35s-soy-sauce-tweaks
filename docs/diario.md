@@ -365,12 +365,12 @@ sudo bash /home/emiyakiritsugu/restaurar_r35s.sh
 
 ---
 
-## 5. Instalação Bem-Sucedida do dArkOS4Clone (01/05/2026)
+## 10. Instalação Bem-Sucedida do dArkOS4Clone (01/05/2026)
 
 **Objetivo:** Instalar o dArkOS4Clone (ArkOS para clones) em um R36S (Panel 1) com SD Card falso.
 
 ### O que foi feito:
-1. **Flash da Imagem:** Gravada a imagem `dArkOS4Clone` no `/dev/sdb`.
+1. **Flash da Imagem:** Gravada a imagem `dArkOS4Clone` no `/dev/sdc`.
 2. **Injeção de Hardware (Panel 1):**
    - Injetado `rk3326-r36s-sauce-panel1-linux.dtb`.
    - Injetado `boot.ini` configurado para o hardware Sauce.
@@ -378,10 +378,15 @@ sudo bash /home/emiyakiritsugu/restaurar_r35s.sh
 3. **Trava de Segurança (Anti-Expansion):**
    - Criado arquivo `doneit` na raiz do boot para pular o script de primeiro boot.
    - Renomeado `expandtoexfat.sh` para `.bak` para impedir corrupção do SD falso por expansão automática.
+4. **Patch de Wi-Fi (SDIO Fix):**
+   - Identificado que o Wi-Fi não funcionava devido ao barramento SDIO estar desativado no DTB padrão.
+   - Descompilado o DTB, alterado status de `dwmmc@ff390000` para `okay`.
+   - Recompilado e reinjetado no cartão SD.
 
 ### Resultado:
 - Boot funcional de primeira.
 - Hardware reconhecido corretamente (sem tela preta).
+- Barramento de Wi-Fi habilitado via hardware (aguardando teste de conexão).
 - Partição `EASYROMS` preservada e pronta para restauração seletiva de backup.
 
 ### Pendências:
