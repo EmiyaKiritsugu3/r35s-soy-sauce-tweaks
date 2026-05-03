@@ -1,0 +1,15 @@
+[Unit]
+Description=Sentinel Deep Hardware X-Ray (Visual)
+After=local-fs.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/sentinel_xray.sh
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty1
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
