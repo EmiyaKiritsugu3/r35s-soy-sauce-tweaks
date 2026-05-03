@@ -1,42 +1,25 @@
-# R35S Soy Sauce Tweaks
+# R35S Soy Sauce Elite Tweaks 💎🎮
+**Elite Engineering Project for Clone Handheld Handhelds**
 
-Customizations, fixes and documentation for the **R35S handheld gaming device** (Clone R36S "Soy Sauce" variant) running **ArkOS**.
+This project documents the journey of restoring and optimizing a **Soy Sauce V03 (Panel 1)** handheld using **dArkOSRE**. It features advanced kernel-level patching, diagnostic automation, and architectural governance.
 
-## Device
+## 🚀 Quick Navigation
+- **[RECOVERY GUIDE](docs/RECOVERY-GUIDE.md)**: "Break Glass" instructions for SD card failure.
+- **[HARDWARE BIBLE](docs/REFERENCE.md)**: Deep technical specs (HSync, GPIOs, Power).
+- **[ARCHITECTURAL DECISIONS (ADR)](docs/ARCHITECTURAL-DECISIONS.md)**: The "Why" behind every technical choice.
+- **[SENTINEL LOG](docs/process/sentinel-log.md)**: Session-by-session history.
 
-| Property | Value |
-|----------|-------|
-| Sold as | R35S |
-| Internal ID | Clone R36S Soy Sauce (Y3506 family) |
-| SoC | Rockchip RK3326 (4× ARM Cortex-A35, ARM64) |
-| RAM | 1GB |
-| Display | Elida KD35T133 — HX8394F controller, MIPI DSI |
-| Resolution | 640×480 @ 60Hz |
-| OS | dArkOS4Clone (Trixie build, btrfs) |
-| DTB | `rk3326-r35s-linux.dtb` (patched Soy Sauce V03) |
+## 🛠️ Key Achievements
+1. **Perfect Display Restoration**: Fixed scrambled green stripes by identifying the `0xda` HSync requirement.
+2. **Smart Boot Logic**: Eliminated the "White Screen" anomaly via regulator-driven power sequencing (ADR 003).
+3. **Automated Diagnostics**: Integrated `Sentinel X-Ray` to capture low-level system logs automatically (ADR 005).
+4. **WiFi Breakthrough**: Confirmed **RTL8188FU** support via identity hacking (ADR 004).
+5. **Data Integrity**: Established a 11GB Golden Safepoint for rapid restoration.
 
-> **Note:** The project recently migrated to **dArkOS4Clone** as the primary baseline for better hardware support and clone compatibility.
+## 👨‍🔬 Technical Context
+- **Motherboard**: Y3506_V03
+- **LCD**: Elida KD35T133 (Panel 1)
+- **OS**: dArkOSRE (Debian Trixie / Kernel 4.4.189)
 
-## Fixes
-
-| Fix | Description | Status |
-|-----|-------------|--------|
-| [LED Off](fixes/led-off/) | Turn off the always-on front LED after boot (DTB patch) | ✅ Integrated |
-| [Wi-Fi Fix](dtb/) | Enabled SDIO bus for internal/external Wi-Fi support | ✅ Integrated |
-| [Anti-Expansion](docs/diario.md) | Prevented automatic expansion to protect fake SD cards | ✅ Integrated |
-| [Baseline Image](images/) | Patched dArkOS4Clone baseline image created | ✅ Ready |
-
-## Hardware Details
-
-See [docs/hardware.md](docs/hardware.md) for full hardware documentation including boot chain, partition layout, GPIO map, and display driver info.
-
-## SD Card Note
-
-This device is commonly sold with a **counterfeit SD card** (labeled 128GB, real capacity ~88GB). Verify with:
-```bash
-sudo f3probe --destructive --time-ops /dev/sdX
-```
-
-## Contributing
-
-PRs welcome. If you have a different Soy Sauce board revision (Y3506_V04, V05, etc.), hardware reports and DTB contributions are especially useful.
+---
+*Maintained under the Sentinel Sovereign Protocol.*
