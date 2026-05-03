@@ -37,27 +37,28 @@ sudo bash mount.sh umount    # desmonta (salva mudanças na imagem)
 
 ---
 
-## ⚡ ESTADO ATUAL (2026-05-01)
+## ⚡ ESTADO ATUAL (2026-05-02)
 
 ### O que foi feito nesta sessão
 
-**1. Migração para dArkOS4Clone:**
-O sistema base foi migrado de ArkOS (GOGOCAT) para **dArkOS4Clone** (Trixie build), que oferece melhor compatibilidade com clones e suporte a hardware moderno.
+**1. Sucesso do Sentinel: Deep X-Ray:**
+Mesmo com o bug temporário de tela preta, o script Sentinel rodou com sucesso no background, gerando o arquivo `SENTINEL_HARDWARE_MAP.log`. 
+- **Confirmado:** Kernel dArkOS suporta BTRFS.
+- **Confirmado:** SD Card CID extraído para monitoramento de saúde do chip falso.
+- **Hostname:** Identificado como `g350`.
 
-**2. Criação da Nova Imagem Base:**
-Foi gerada uma imagem de backup do estado funcional atual do SD card:
-- **Arquivo:** `images/darkos4clone_patched_base.img` (9,9 GB)
-- **Conteúdo:** MBR + BOOT (vfat) + ROOTFS (btrfs).
-- **Status:** Contém patches de hardware (Wi-Fi fix, Anti-Expansion fix).
+**2. Diagnóstico e Rollback do Display:**
+Identificamos que o dArkOS4Clone é sensível a mudanças no DTB nativo. O uso do DTB do ArkOS antigo causou "cegueira" no sistema. 
+- **Ação:** O DTB original funcional foi restaurado a partir da imagem de backup.
+- **Status:** O sistema está pronto para boot com imagem e LED corrigido (herdado do backup).
 
-**3. Fix do LED e Hardware (Herdados):**
-- O fix do LED (abordagem DTB) foi validado e está integrado na nova imagem.
-- Barramento SDIO (Wi-Fi) habilitado via DTB.
-- Script `expandtoexfat.sh` desativado para proteger o SD card falsificado.
-
----
+**3. Documentação de Elite:**
+Os achados do "Ground Truth" do Sentinel foram integrados em `docs/hardware.md`.
 
 ---
+
+## 🎯 Estratégia de Elite: Arch-style Workflow
+
 
 ## 🏗 Arquitetura do dArkOS4Clone — Novo Baseline
 
