@@ -101,7 +101,33 @@ Offset 0       → 16MB    : U-Boot (raw, sector 64)
 - Version: 4.4.189
 - Architecture: ARM64
 - Has: `simple-panel-dsi` ✓, `pwm-backlight` ✓
-- **No btrfs** — ROOT must be ext4
+- **Filesystems:** Supports **btrfs** (used on ROOTFS) and **exfat** (module).
+
+## Sentinel Ground Truth (X-Ray Findings)
+
+Data captured by the `Sentinel: Deep X-Ray` script during the session on 2026-05-02:
+
+### System & CPU
+- **Hostname:** `g350`
+- **Model:** `Rockchip RK3326`
+- **Compatible:** `rockchip,rk3326-odroidgo3-linux`, `rockchip,rk3326`
+- **Cores:** 4
+
+### Storage DNA
+- **SD Card CID:** `fe34325344000000200000046d0188dd`
+- **Device Path:** `/dev/mmcblk0`
+
+### Power & PMIC (RK817)
+- **Regulators:**
+    - `vcc_lcd`: 3.3V (3325000 uV)
+    - `vcc_sd`: 3.3V (3325000 uV)
+    - `vcc1v8_soc`: 1.8V (1800000 uV)
+
+---
+
+## 📜 Full Hardware Reference
+The complete mapping containing Device Tree dumps, I2C scans, and GPIO matrices can be found in the Sentinel archive:
+👉 [Sentinel Deep X-Ray Log (2026-05-02)](dissection/2026-05-02-hardware-xray.log)
 
 ## dArkOS Hardware Detection
 
